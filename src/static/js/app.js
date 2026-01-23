@@ -1,9 +1,9 @@
 function App() {
     const { Container, Row, Col } = ReactBootstrap;
     return (
-        <Container>
+        <Container style={{ maxWidth: '600px' }}>
             <Row>
-                <Col md={{ offset: 3, span: 6 }}>
+                <Col>
                     <TodoListCard />
                 </Col>
             </Row>
@@ -47,34 +47,52 @@ function TodoListCard() {
         [items],
     );
 
-    if (items === null) return 'Loading...';
+    const completedCount = items?.filter(i => i.completed).length || 0;
+
+    if (items === null) return (
+        <div className="todo-container">
+            <div className="loading">
+                <i className="fas fa-spinner fa-spin"></i> Loading your tasks...
+            </div>
+        </div>
+    );
 
     return (
-        <React.Fragment>
-            <AddItemForm onNewItem={onNewItem} />
-            {items.length === 0 && (
-                <p className="text-center">No items yet! Add one above!</p>
-            )}
-            {items.map(item => (
-                <ItemDisplay
-                    item={item}
-                    key={item.id}
-                    onItemUpdate={onItemUpdate}
-                    onItemRemoval={onItemRemoval}
-                />
-            ))}
-        </React.Fragment>
+        <div className="todo-container">
+            <div className="todo-header">
+                <h1>📝 My Tasks</h1>
+                <p>{items.length} total • {completedCount} completed</p>
+            </div>
+            <div className="add-item-form">
+                <AddItemForm onNewItem={onNewItem} />
+            </div>
+            <div className="items-container">
+                {items.length === 0 && (
+                    <div className="empty-state">
+                        <p>✨ No tasks yet! Create one to get started!</p>
+                    </div>
+                )}
+                {items.map(item => (
+                    <ItemDisplay
+                        item={item}
+                        key={item.id}
+                        onItemUpdate={onItemUpdate}
+                        onItemRemoval={onItemRemoval}
+                    />
+                ))}
+            </div>
+        </div>
     );
 }
 
 function AddItemForm({ onNewItem }) {
-    const { Form, InputGroup, Button } = ReactBootstrap;
-
     const [newItem, setNewItem] = React.useState('');
     const [submitting, setSubmitting] = React.useState(false);
 
     const submitNewItem = e => {
         e.preventDefault();
+        if (!newItem.trim()) return;
+        
         setSubmitting(true);
         fetch('/items', {
             method: 'POST',
@@ -86,31 +104,29 @@ function AddItemForm({ onNewItem }) {
                 onNewItem(item);
                 setSubmitting(false);
                 setNewItem('');
-            });
+            })
+            .catch(() => setSubmitting(false));
     };
 
     return (
-        <Form onSubmit={submitNewItem}>
-            <InputGroup className="mb-3">
-                <Form.Control
-                    value={newItem}
-                    onChange={e => setNewItem(e.target.value)}
-                    type="text"
-                    placeholder="New Item"
-                    aria-describedby="basic-addon1"
-                />
-                <InputGroup.Append>
-                    <Button
-                        type="submit"
-                        variant="success"
-                        disabled={!newItem.length}
-                        className={submitting ? 'disabled' : ''}
-                    >
-                        {submitting ? 'Adding...' : 'Add Item'}
-                    </Button>
-                </InputGroup.Append>
-            </InputGroup>
-        </Form>
+        <form onSubmit={submitNewItem} style={{ display: 'flex', gap: '10px' }}>
+            <input
+                type="text"
+                className="form-control"
+                value={newItem}
+                onChange={e => setNewItem(e.target.value)}
+                placeholder="Add a new task..."
+                disabled={submitting}
+                style={{ flex: 1 }}
+            />
+            <button
+                type="submit"
+                className="btn-add"
+                disabled={!newItem.trim() || submitting}
+            >
+                <i className="fas fa-plus"></i> {submitting ? 'Adding...' : 'Add'}
+            </button>
+        </form>
     );
 }
 
@@ -137,43 +153,29 @@ function ItemDisplay({ item, onItemUpdate, onItemRemoval }) {
     };
 
     return (
-        <Container fluid className={`item ${item.completed && 'completed'}`}>
-            <Row>
-                <Col xs={1} className="text-center">
-                    <Button
-                        className="toggles"
-                        size="sm"
-                        variant="link"
-                        onClick={toggleCompletion}
-                        aria-label={
-                            item.completed
-                                ? 'Mark item as incomplete'
-                                : 'Mark item as complete'
-                        }
-                    >
-                        <i
-                            className={`far ${
-                                item.completed ? 'fa-check-square' : 'fa-square'
-                            }`}
-                        />
-                    </Button>
-                </Col>
-                <Col xs={10} className="name">
-                    {item.name}
-                </Col>
-                <Col xs={1} className="text-center remove">
-                    <Button
-                        size="sm"
-                        variant="link"
-                        onClick={removeItem}
-                        aria-label="Remove Item"
-                    >
-                        <i className="fa fa-trash text-danger" />
-                    </Button>
-                </Col>
-            </Row>
-        </Container>
-    );
-}
+        <div className={`item ${item.completed && 'completed'}`}>
+            <input
+                type="checkbox"
+                className="item-checkbox"
+                checked={item.completed}
+                onChange={toggleCompletion}
+                aria-label={
+                    item.completed
+                        ? 'Mark item as incomplete'
+                        : 'Mark item as complete'
+                }
+            />
+            <span className="name">{item.name}</span>
+            <div className="item-actions">
+                <button
+                    className="btn-remove"
+                    onClick={removeItem}
+                    aria-label="Delete task"
+                    title="Delete task"
+                >
+                    <i className="fas fa-trash-alt"></i>
+                </button>
+            </div>
+        </div
 
 ReactDOM.render(<App />, document.getElementById('root'));
