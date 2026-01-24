@@ -211,6 +211,8 @@ function ItemDisplay({ item, onItemUpdate, onItemRemoval }) {
                     <i className="fas fa-trash-alt"></i>
                 </button>
             </div>
-        </div
+        </div>
+    );
+}
 
 ReactDOM.render(<App />, document.getElementById('root'));
