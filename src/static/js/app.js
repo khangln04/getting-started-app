@@ -1,7 +1,7 @@
 function App() {
     const { Container, Row, Col } = ReactBootstrap;
     return (
-        <Container style={{ maxWidth: '600px' }}>
+        <Container style={{ maxWidth: '650px' }}>
             <Row>
                 <Col>
                     <TodoListCard />
@@ -13,6 +13,7 @@ function App() {
 
 function TodoListCard() {
     const [items, setItems] = React.useState(null);
+    const [animatingIds, setAnimatingIds] = React.useState(new Set());
 
     React.useEffect(() => {
         fetch('/items')
@@ -41,10 +42,14 @@ function TodoListCard() {
 
     const onItemRemoval = React.useCallback(
         item => {
-            const index = items.findIndex(i => i.id === item.id);
-            setItems([...items.slice(0, index), ...items.slice(index + 1)]);
+            setAnimatingIds(new Set([...animatingIds, item.id]));
+            setTimeout(() => {
+                const index = items.findIndex(i => i.id === item.id);
+                setItems([...items.slice(0, index), ...items.slice(index + 1)]);
+                setAnimatingIds(new Set([...animatingIds].filter(id => id !== item.id)));
+            }, 300);
         },
-        [items],
+        [items, animatingIds],
     );
 
     const completedCount = items?.filter(i => i.completed).length || 0;
@@ -52,24 +57,53 @@ function TodoListCard() {
     if (items === null) return (
         <div className="todo-container">
             <div className="loading">
-                <i className="fas fa-spinner fa-spin"></i> Loading your tasks...
+                <i className="fas fa-spinner"></i> Loading your tasks...
             </div>
         </div>
     );
 
+    const progress = items.length > 0 ? Math.round((completedCount / items.length) * 100) : 0;
+
     return (
         <div className="todo-container">
             <div className="todo-header">
-                <h1>📝 My Tasks</h1>
-                <p>{items.length} total • {completedCount} completed</p>
+                <h1>✨ Task Manager</h1>
+                <p>Stay organized and get things done</p>
             </div>
             <div className="add-item-form">
                 <AddItemForm onNewItem={onNewItem} />
+                {items.length > 0 && (
+                    <div style={{ marginTop: '18px', textAlign: 'center' }}>
+                        <div style={{ 
+                            fontSize: '0.95rem', 
+                            color: '#667eea', 
+                            fontWeight: '600',
+                            marginBottom: '8px'
+                        }}>
+                            Progress: {completedCount} / {items.length} ({progress}%)
+                        </div>
+                        <div style={{ 
+                            width: '100%', 
+                            height: '8px',
+                            backgroundColor: '#e8e8e8',
+                            borderRadius: '10px',
+                            overflow: 'hidden'
+                        }}>
+                            <div style={{
+                                width: `${progress}%`,
+                                height: '100%',
+                                background: 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)',
+                                transition: 'width 0.5s ease',
+                                borderRadius: '10px'
+                            }}></div>
+                        </div>
+                    </div>
+                )}
             </div>
             <div className="items-container">
                 {items.length === 0 && (
                     <div className="empty-state">
-                        <p>✨ No tasks yet! Create one to get started!</p>
+                        <p>🎯 No tasks yet! Add one to get started!</p>
                     </div>
                 )}
                 {items.map(item => (
@@ -78,6 +112,7 @@ function TodoListCard() {
                         key={item.id}
                         onItemUpdate={onItemUpdate}
                         onItemRemoval={onItemRemoval}
+                        isAnimating={animatingIds.has(item.id)}
                     />
                 ))}
             </div>
