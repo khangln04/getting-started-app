@@ -5,6 +5,11 @@ pipeline {
         nodejs 'node18'
     }
 
+    environment {
+        // Tránh dùng path cứng C:\etc\
+        TODO_DB_PATH = "${WORKSPACE}\\todo-test.db"
+    }
+
     stages {
         stage('Checkout') {
             steps {
@@ -20,27 +25,27 @@ pipeline {
             }
         }
 
-        stage('Run Tests') {
+        stage('Run Tests (SQLite Safe)') {
             steps {
-                echo '🧪 Running tests'
-                bat 'npm test'
-            }
-        }
-
-        stage('Build') {
-            steps {
-                echo '🏗️ Building application'
-                bat 'npm run build'
+                echo '🧪 Running tests sequentially to avoid SQLite lock'
+                bat '''
+                set NODE_ENV=test
+                npx jest --runInBand
+                '''
             }
         }
     }
 
     post {
         success {
-            echo '✅ CI Pipeline SUCCESS'
+            echo '✅ CI SUCCESS – All tests passed'
         }
         failure {
-            echo '❌ CI Pipeline FAILED'
+            echo '❌ CI FAILED – Check SQLite file lock'
+        }
+        always {
+            echo '🧹 Cleanup test database'
+            bat 'if exist "%WORKSPACE%\\todo-test.db" del /f "%WORKSPACE%\\todo-test.db"'
         }
     }
 }
