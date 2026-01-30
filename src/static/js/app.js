@@ -57,7 +57,7 @@ function TodoListCard() {
     if (items === null) return (
         <div className="todo-container">
             <div className="loading">
-                <i className="fas fa-spinner"></i> Loading your tasks...
+                {/* <i className="fas fa-spinner"></i> Loading your tasks... */}
             </div>
         </div>
     );
