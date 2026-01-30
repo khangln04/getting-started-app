@@ -1,71 +1,77 @@
 pipeline {
     agent any
 
+    // Định nghĩa công cụ Node.js đã cấu hình trong Global Tool Configuration
     tools {
         nodejs 'node18'
     }
 
+    // Thiết lập biến môi trường
     environment {
         NODE_ENV = 'test'
         SQLITE_DB = 'C:\\etc\\todos\\todo.db'
     }
 
     stages {
-
-        stage('Checkout') {
+        stage('Step 1: Checkout Source Code') {
             steps {
-                echo '📥 Checkout source code'
+                echo '📥 Đang lấy mã nguồn từ Repository...'
                 checkout scm
             }
         }
 
-        stage('Prepare Environment (IMPORTANT)') {
+        stage('Step 2: Prepare Environment') {
             steps {
-                echo '🧹 Cleaning up old Node processes & SQLite DB'
-                bat '''
-                echo Kill all running node processes
-                taskkill /F /IM node.exe >nul 2>&1 || echo No node process running
+                echo '🧹 Đang dọn dẹp các tiến trình Node cũ và file DB bị khóa...'
+                bat """
+                @echo off
+                echo Đang tắt các tiến trình node.exe để giải phóng file...
+                taskkill /F /IM node.exe /T >nul 2>&1 || echo Không có tiến trình Node nào đang chạy.
 
-                echo Remove old SQLite database if exists
+                echo Đang xóa file cơ sở dữ liệu cũ tại: %SQLITE_DB%
                 if exist "%SQLITE_DB%" (
-                    del /F "%SQLITE_DB%"
+                    del /F /Q "%SQLITE_DB%"
+                ) else (
+                    echo File DB không tồn tại, bỏ qua bước xóa.
                 )
-                '''
+                """
             }
         }
 
-        stage('Install Dependencies') {
+        stage('Step 3: Install Dependencies') {
             steps {
-                echo '📦 Installing dependencies'
-                bat 'npm install'
+                echo '📦 Đang cài đặt các thư viện (node_modules)...'
+                bat "npm install"
             }
         }
 
-        stage('Run Tests (CI Safe)') {
+        stage('Step 4: Run Automation Tests') {
             steps {
-                echo '🧪 Running Jest safely on Windows'
-                bat '''
-                npx jest --runInBand --detectOpenHandles --forceExit
-                '''
+                echo '🧪 Đang chạy kiểm thử với Jest...'
+                // Giải thích tham số:
+                // --runInBand: Chạy tuần tự các file test (tránh tranh chấp file DB)
+                // --detectOpenHandles: Phát hiện các kết nối chưa đóng
+                // --forceExit: Thoát ngay sau khi xong
+                // --no-cache: Tránh việc Jest sử dụng dữ liệu cũ gây lỗi
+                bat "npx jest --runInBand --detectOpenHandles --forceExit --no-cache"
             }
         }
     }
 
+    // Các hành động chạy sau khi các Stage hoàn tất
     post {
         always {
-            echo '🧹 Final cleanup'
-            bat '''
-            taskkill /F /IM node.exe >nul 2>&1 || echo No node process running
-            if exist "%SQLITE_DB%" (
-                del /F "%SQLITE_DB%"
-            )
-            '''
+            echo '🧹 Dọn dẹp cuối cùng: Đóng mọi tiến trình còn sót lại...'
+            bat """
+            @echo off
+            taskkill /F /IM node.exe /T >nul 2>&1 || echo Dọn dẹp hoàn tất.
+            """
         }
         success {
-            echo '✅ CI SUCCESS – Tests passed safely'
+            echo '✅ Chúc mừng! Pipeline đã chạy thành công.'
         }
         failure {
-            echo '❌ CI FAILED – SQLite file lock detected'
+            echo '❌ Pipeline thất bại. Vui lòng kiểm tra log để biết chi tiết.'
         }
     }
 }
