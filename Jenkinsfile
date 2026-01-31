@@ -41,7 +41,7 @@ pipeline {
 
     post {
         success {
-            echo '✅ CI/CD SUCCESS (No test stage)'
+            echo '✅ CI/CD SUCCESS'
         }
         failure {
             echo '❌ CI/CD FAILED'
